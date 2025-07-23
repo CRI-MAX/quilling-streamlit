@@ -18,12 +18,14 @@ def detect_edges(img):
     gray = ImageOps.grayscale(img)
     blurred = gray.filter(ImageFilter.GaussianBlur(radius=2))
     edges = blurred.filter(ImageFilter.FIND_EDGES)
+    edges = ImageOps.invert(edges)  # Inverte: contorni chiari su sfondo scuro
+    edges = ImageOps.autocontrast(edges)  # Aumenta il contrasto
     return edges
 
 def save_pdf(edges):
     os.makedirs("output", exist_ok=True)
     temp_path = "output/temp_edges.png"
-    edges.save(temp_path)
+    edges.convert("RGB").save(temp_path)  # Converti in RGB per compatibilità PDF
 
     pdf_path = "output/quilling_project.pdf"
     c = canvas.Canvas(pdf_path)
@@ -35,12 +37,15 @@ def save_pdf(edges):
 
 # === INTERFACCIA STREAMLIT ===
 
+st.set_page_config(page_title="Quilling Generator", layout="centered")
 st.title("🎨 Generatore Quilling da Immagine")
+
+st.markdown("ℹ️ Puoi cambiare il tema chiaro/scuro cliccando ⚙️ in basso a destra → *Theme*")
 
 uploaded_file = st.file_uploader("Carica un'immagine (.jpg, .png)", type=["jpg", "jpeg", "png"])
 
 if uploaded_file is not None:
-    st.image(uploaded_file, caption="Immagine originale", use_column_width=True)
+    st.image(uploaded_file, caption="Immagine originale", use_container_width=True)
 
     width = st.slider("📐 Larghezza immagine (px)", min_value=100, max_value=800, value=400, step=50)
     k = st.slider("🎨 Numero di colori da semplificare", min_value=2, max_value=20, value=8)
@@ -49,7 +54,7 @@ if uploaded_file is not None:
     reduced = reduce_colors(img, k=k)
     edges = detect_edges(reduced)
 
-    st.image(edges, caption="Contorni rilevati", use_column_width=True)
+    st.image(edges, caption="Contorni rilevati", use_container_width=True)
 
     if st.button("Genera PDF Quilling"):
         pdf_path = save_pdf(edges)
